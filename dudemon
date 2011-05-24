@@ -5,6 +5,7 @@ try :
 except ImportError :
 	import json
 
+import traceback
 import time
 import os.path
 import sys
@@ -54,14 +55,15 @@ class DudeCore(object) :
 
 	def handle(self, nick, text) :
 		words = [w for w in text.split(' ') if w]
+		who = self.sanitize(nick)
 
 		chg = False
 		cmds = ('!add', '!next', '!sched', '!here')
 
 		try :
 			now = int(time.time())
+
 			if words and words[0] in cmds :
-				who = self.sanitize(nick)
 				cmd = words[0]
 
 				if cmd == '!add' :
@@ -122,7 +124,9 @@ class DudeCore(object) :
 					self.state[who]['s'] = now + dur_in
 					chg = True
 					return 'hello, %s' % who
-
+		except :
+			traceback.print_exc()
+			return "that was very exceptional of you, %s" % who
 		finally :
 			if chg :
 				self.dump()
