@@ -1,0 +1,155 @@
+#!/usr/bin/env python
+
+try :
+	import simplejson as json
+except ImportError :
+	import json
+
+import time
+import os.path
+import sys
+import irclib
+import datediff
+
+class DudeCore(object) :
+	WORK_DAY = 8 * 3600
+
+	def __init__(self, nick, statefile) :
+		self.nick = nick
+		self.statefile = statefile
+		self.load()
+
+	def read(self) :
+		if os.path.exists(self.statefile) :
+			fh = open(self.statefile, 'r')
+			try :
+				return json.load(fh)
+			finally :
+				fh.close()
+		else :
+			return {}
+
+	def write(self, state) :
+		if os.path.exists(self.statefile) :
+			f = self.statefile + '.bak'
+			os.rename(self.statefile, f)
+		
+		fh = open(self.statefile, 'w')
+		try :
+			json.dump(state, fh)
+		finally :
+			fh.close()
+
+	def load(self) :
+		self.state = self.read()
+
+	def dump(self) :
+		self.write(self.state)
+
+	def sanitize(self, nick) :
+		lowchar = ''.join([c for c in nick.lower() if c in [chr(i + ord('a')) for i in range(26)]])
+		if lowchar :
+			return lowchar
+		return nick
+
+	def handle(self, nick, text) :
+		words = [w for w in text.split(' ') if w]
+
+		chg = False
+		cmds = ('!add', '!next', '!sched', '!here')
+
+		try :
+			now = int(time.time())
+			if words and words[0] in cmds :
+				who = self.sanitize(nick)
+				cmd = words[0]
+
+				if cmd == '!add' :
+					self.state.setdefault(who, {})
+					chg = True
+					return 'ok, %s' % who
+				if cmd == '!next' :
+					try :
+						about = self.sanitize(words[1])
+					except IndexError :
+						about = who
+					if about == self.nick :
+						return "I should be here until the end of time"
+					
+					ud = self.state.get(about, {}) # get user data
+					if 's' in ud and 'e' in ud :
+						s = ud['s']
+						e = ud['e']
+						if e < now :
+							return '%s left about %s ago' % (about, datediff.differ(now - e))
+						elif s > now :
+							return '%s will get here in %s' % (about, datediff.differ(s - now))
+						else :
+							return '%s should be here for another %s' % (about, datediff.differ(e - now))
+					else :
+						return "sorry, I don't know when %s will be around" % about
+				if cmd == '!sched' :
+					if who not in self.state :
+						return 'sorry, you must !add yourself first'
+					
+					try :
+						until_in = datediff.dur2sec(words[1])
+						if (len(words) < 3) :
+							dur_in = DudeCore.WORK_DAY
+						else :
+							dur_in = datediff.dur2sec(words[2])
+					except IndexError :
+						return 'usage: !sched <until_in> [duration_in]'
+					except datediff.Bad :
+						return 'usage: !sched <until_in> [duration_in] - formats are hours:minutes'
+
+					when_in = now + until_in
+					when_out = when_in + dur_in
+					self.state[who]['s'] = when_in
+					self.state[who]['e'] = when_out
+					chg = True
+					return 'see you in %s, %s' % (datediff.differ(until_in), who)
+				if cmd == '!here' :
+					if who not in self.state :
+						return 'sorry, you must !add yourself first'
+
+					try :
+						dur_in = datediff.dur2sec(words[1])
+					except IndexError :
+						dur_in = DudeCore.WORK_DAY
+
+					self.state[who]['s'] = now
+					self.state[who]['s'] = now + dur_in
+					chg = True
+					return 'hello, %s' % who
+
+		finally :
+			if chg :
+				self.dump()
+
+class DudeMon(irclib.SimpleIRCClient) :
+	def __init__(self, server, nick, chan, statefile) :
+		self.core = DudeCore(nick, statefile)
+		irclib.SimpleIRCClient.__init__(self)
+		self.connect(server, 6667, nick)
+		self.connection.join(chan)
+	
+	def on_join(self, c, e) :
+		pass
+
+	def on_pubmsg(self, c, e) :
+		nick = e.source().split("!")[0]
+		chan = e.target()
+		txt = e.arguments()[0]
+
+		rmsg = self.core.handle(nick, txt)
+		if rmsg :
+			self.connection.privmsg(chan, rmsg)
+
+if __name__ == '__main__' :
+	try :
+		s = DudeMon(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+	except IndexError :
+		print 'usage: dudemon server nick channel <statefile>'
+		sys.exit(1)
+	s.start();
