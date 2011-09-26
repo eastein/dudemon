@@ -156,4 +156,4 @@ if __name__ == '__main__' :
 	except IndexError :
 		print 'usage: dudemon server nick channel <statefile>'
 		sys.exit(1)
-	s.start();
+	s.start()
