@@ -9,7 +9,7 @@ import traceback
 import time
 import os.path
 import sys
-import irclib
+import mediorc
 import datediff
 
 class DudeCore(object) :
@@ -35,6 +35,7 @@ class DudeCore(object) :
 			f = self.statefile + '.bak'
 			os.rename(self.statefile, f)
 		
+		# TODO handle inability to write, or open, or close? Restore .bak file? What if that fails?
 		fh = open(self.statefile, 'w')
 		try :
 			json.dump(state, fh)
@@ -78,7 +79,7 @@ class DudeCore(object) :
 					if about == self.nick :
 						return "I should be here until the end of time"
 					
-					ud = self.state.get(about, {}) # get user data
+					ud = self.state.get(about, dict()) # get user data
 					if 's' in ud and 'e' in ud :
 						s = ud['s']
 						e = ud['e']
@@ -107,6 +108,7 @@ class DudeCore(object) :
 
 					when_in = now + until_in
 					when_out = when_in + dur_in
+					self.state[who]['u'] = now
 					self.state[who]['s'] = when_in
 					self.state[who]['e'] = when_out
 					chg = True
@@ -120,10 +122,39 @@ class DudeCore(object) :
 					except IndexError :
 						dur_in = DudeCore.WORK_DAY
 
+					additional = None
+
+					if 'u' in self.state[who] and self.state[who]['u'] != self.state[who]['s'] :
+						u = self.state[who]['u']
+						s = self.state[who]['s']
+						e = self.state[who]['e']
+
+						# analyze how accurate the !sched prediction made was
+						# expected diff, actual diff, and the diff between them
+						e_d = s - u
+						a_d = now - u
+						d_d = e_d - a_d
+
+						if abs(a_d) < abs(e - s) :
+							if d_d > 0 :
+								term = 'early'
+							else :
+								term = 'late'
+							percent = 100 * (1.0 * abs(d_d) / abs(e_d))
+
+							if d_d == 0 :
+								additional = 'like clockwork'
+							else :
+								additional = '%s %s - a %0.1f%% error' % (datediff.differ(abs(d_d)), term, percent)
+
+					self.state[who]['u'] = now
 					self.state[who]['s'] = now
-					self.state[who]['s'] = now + dur_in
+					self.state[who]['e'] = now + dur_in
 					chg = True
-					return 'hello, %s' % who
+					if additional :
+						return 'hello %s, you\'re %s.' % (who, additional)
+					else :
+						return 'hello, %s' % who
 		except :
 			traceback.print_exc()
 			return "that was very exceptional of you, %s" % who
@@ -131,15 +162,13 @@ class DudeCore(object) :
 			if chg :
 				self.dump()
 
-class DudeMon(irclib.SimpleIRCClient) :
-	def __init__(self, server, nick, chan, statefile) :
-		self.core = DudeCore(nick, statefile)
-		irclib.SimpleIRCClient.__init__(self)
-		self.connect(server, 6667, nick)
-		self.connection.join(chan)
+class DudemonBot(mediorc.IRC) :
+	def __init__(self, server, nick, chan, core) :
+		self.core = core
+		mediorc.IRC.__init__(self, server, nick, chan)
 	
 	def on_join(self, c, e) :
-		pass
+		self.initialize_pinger()
 
 	def on_pubmsg(self, c, e) :
 		nick = e.source().split("!")[0]
@@ -150,10 +179,23 @@ class DudeMon(irclib.SimpleIRCClient) :
 		if rmsg :
 			self.connection.privmsg(chan, rmsg)
 
+class DudemonThread(mediorc.IRCThread) :
+	def __init__(self, server, nick, chan, core) :
+		self.bot_create = lambda: DudemonBot(server, nick, chan, core)
+		mediorc.IRCThread.__init__(self)
+
 if __name__ == '__main__' :
 	try :
-		s = DudeMon(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+		server = sys.argv[1]
+		nick = sys.argv[2]
+		chan = sys.argv[3]
+		statefile = sys.argv[4]
+
+		core = DudeCore(nick, statefile)
+
+		s = DudemonThread(server, nick, chan, core)
 	except IndexError :
-		print 'usage: dudemon server nick channel <statefile>'
+		print 'usage: dudemon <server> <nick> <channel> <statefile>'
 		sys.exit(1)
-	s.start()
+	
+	s.run()
