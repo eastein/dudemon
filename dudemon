@@ -112,7 +112,7 @@ class DudeCore(object) :
 					self.state[who]['s'] = when_in
 					self.state[who]['e'] = when_out
 					chg = True
-					return 'see you in %s, %s' % (datediff.differ(until_in), who)
+					return 'see you for %s in %s, %s' % (datediff.differ(dur_in), datediff.differ(until_in), who)
 				if cmd == '!here' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
@@ -120,10 +120,15 @@ class DudeCore(object) :
 					try :
 						dur_in = datediff.dur2sec(words[1])
 					except IndexError :
-						dur_in = DudeCore.WORK_DAY
+						dur_in = None
+
+					if dur_in is None :
+						if 's' in self.state[who] and 'e' in self.state[who] :
+							dur_in = self.state[who]['e'] - self.state[who]['s']
+						else :
+							dur_in = DudeCore.WORK_DAY
 
 					additional = None
-
 					if 'u' in self.state[who] and self.state[who]['u'] != self.state[who]['s'] :
 						u = self.state[who]['u']
 						s = self.state[who]['s']
@@ -151,10 +156,13 @@ class DudeCore(object) :
 					self.state[who]['s'] = now
 					self.state[who]['e'] = now + dur_in
 					chg = True
+					
+					duration_statement = "I guess you'll be here for %s or so." % datediff.differ(dur_in)
+
 					if additional :
-						return 'hello %s, you\'re %s.' % (who, additional)
+						return 'hello %s, you\'re %s. %s' % (who, additional, duration_statement)
 					else :
-						return 'hello, %s' % who
+						return 'hello, %s. %s' % (who, duration_statement)
 		except :
 			traceback.print_exc()
 			return "that was very exceptional of you, %s" % who
