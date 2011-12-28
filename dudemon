@@ -14,6 +14,7 @@ import datediff
 
 class DudeCore(object) :
 	WORK_DAY = 8 * 3600
+	MUST_HAVE_ALREADY_LEFT = 24 * 3600
 
 	def __init__(self, nick, statefile) :
 		self.nick = nick
@@ -59,7 +60,7 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!sched', '!here')
+		cmds = ('!add', '!next', '!sched', '!here', '!bye')
 
 		try :
 			now = int(time.time())
@@ -113,6 +114,23 @@ class DudeCore(object) :
 					self.state[who]['e'] = when_out
 					chg = True
 					return 'see you for %s in %s, %s' % (datediff.differ(dur_in), datediff.differ(until_in), who)
+				if cmd == '!bye' :
+					if not who in self.state or 'e' not in self.state[who] :
+						return 'you never said you were here!'
+
+					if now < self.state[who]['s'] :
+						return 'you are not even here yet!'
+
+					how_long = datediff.differ(now - self.state[who]['s'])
+
+					print how_long
+					
+					if now > self.state[who]['e'] + DudeCore.MUST_HAVE_ALREADY_LEFT :
+						return 'what, do you live here? That would mean you\'ve been here for %s' % how_long
+
+					self.state[who]['e'] = now
+					chg = True
+					return 'bye! You were here for %s' % how_long
 				if cmd == '!here' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
