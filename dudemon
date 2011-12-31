@@ -122,8 +122,6 @@ class DudeCore(object) :
 						return 'you are not even here yet!'
 
 					how_long = datediff.differ(now - self.state[who]['s'])
-
-					print how_long
 					
 					if now > self.state[who]['e'] + DudeCore.MUST_HAVE_ALREADY_LEFT :
 						return 'what, do you live here? That would mean you\'ve been here for %s' % how_long
