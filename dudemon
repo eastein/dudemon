@@ -130,7 +130,7 @@ class DudeCore(object) :
 
 					self.state[who]['e'] = now
 					chg = True
-					return 'bye! You were here for %s' % how_long
+					return 'bye, %s! You were here for %s' % (who, how_long)
 				if cmd == '!here' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
