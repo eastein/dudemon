@@ -147,6 +147,8 @@ class DudeCore(object) :
 						dur_in = datediff.dur2sec(words[1])
 					except IndexError :
 						dur_in = None
+					except datediff.Bad :
+						return 'usage: !here [duration_in] - format is hours:minutes'
 
 					if dur_in is None :
 						if 's' in self.state[who] and 'e' in self.state[who] :
