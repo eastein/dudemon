@@ -61,7 +61,7 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!sched', '!here', '!bye')
+		cmds = ('!add', '!next', '!sched', '!here', '!bye', '!whom')
 
 		try :
 			now = int(time.time())
