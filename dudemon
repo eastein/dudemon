@@ -11,6 +11,7 @@ import os.path
 import sys
 import mediorc
 import datediff
+import dudeutils
 
 class DudeCore(object) :
 	WORK_DAY = 8 * 3600
@@ -72,7 +73,7 @@ class DudeCore(object) :
 					self.state.setdefault(who, {})
 					chg = True
 					return 'ok, %s' % who
-				if cmd == '!next' :
+				elif cmd == '!next' :
 					try :
 						about = self.sanitize(words[1])
 					except IndexError :
@@ -92,7 +93,16 @@ class DudeCore(object) :
 							return '%s should be here for another %s' % (about, datediff.differ(e - now))
 					else :
 						return "sorry, I don't know when %s will be around" % about
-				if cmd == '!sched' :
+				elif cmd == '!whom' :
+					try :
+						when = now + datediff.dur2sec(words[1])
+					except IndexError :
+						when = now
+					except datediff.Bad :
+						return 'usage: !whom [how_long_in_future] format is hours:minutes'
+
+					return dudeutils.whom(self.state, now, when)
+				elif cmd == '!sched' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
 					
@@ -114,7 +124,7 @@ class DudeCore(object) :
 					self.state[who]['e'] = when_out
 					chg = True
 					return 'see you for %s in %s, %s' % (datediff.differ(dur_in), datediff.differ(until_in), who)
-				if cmd == '!bye' :
+				elif cmd == '!bye' :
 					if not who in self.state or 'e' not in self.state[who] :
 						return 'you never said you were here!'
 
@@ -129,7 +139,7 @@ class DudeCore(object) :
 					self.state[who]['e'] = now
 					chg = True
 					return 'bye, %s! You were here for %s' % (who, how_long)
-				if cmd == '!here' :
+				elif cmd == '!here' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
 

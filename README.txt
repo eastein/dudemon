@@ -8,3 +8,9 @@ This is a bot for tracking when people will be in a location.
 
 * mediorc (https://github.com/eastein/mediorc)
 * python-irclib
+
+# Tests
+
+To run tests:
+
+    nosetests -vv tests
