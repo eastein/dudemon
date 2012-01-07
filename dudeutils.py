@@ -3,6 +3,9 @@ import datediff
 def whom(state, now, when) :
 	whom = list()
 	for who in state :
+		if 'e' not in state[who] or 's' not in state[who] :
+			continue
+
 		if when <= state[who]['e'] and state[who]['s'] <= when :
 			whom.append(who)
 	whom.sort()
