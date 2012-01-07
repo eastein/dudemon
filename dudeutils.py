@@ -9,6 +9,7 @@ def whom(state, now, when) :
 		if when <= state[who]['e'] and state[who]['s'] <= when :
 			whom.append(who)
 	whom.sort()
+	plural = len(whom) > 1
 
 	if len(whom) > 2 :
 		whom = ', '.join(whom[:-1]) + ', and ' + whom[-1]
@@ -21,7 +22,10 @@ def whom(state, now, when) :
 
 	if now == when :
 		temporal = 'now'
-		verbal = 'is'
+		if plural :
+			verbal = 'are'
+		else :
+			verbal = 'is'
 	else :
 		temporal = 'in %s' % datediff.differ(when - now)
 		verbal = 'will be'
