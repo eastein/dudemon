@@ -101,7 +101,7 @@ class DudeCore(object) :
 					except datediff.Bad :
 						return 'usage: !whom [how_long_in_future] format is hours:minutes'
 
-					return dudeutils.whom(self.state, now, when)
+					return "As far as I know, %s" % dudeutils.whom(self.state, now, when)
 				elif cmd == '!sched' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
