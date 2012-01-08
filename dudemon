@@ -113,7 +113,7 @@ class DudeCore(object) :
 						else :
 							dur_in = datediff.dur2sec(words[2])
 					except IndexError :
-						return 'usage: !sched <until_in> [duration_in]'
+						return 'usage: !sched <until_in> [duration_in] - formats are hours:minutes'
 					except datediff.Bad :
 						return 'usage: !sched <until_in> [duration_in] - formats are hours:minutes'
 
@@ -193,7 +193,7 @@ class DudeCore(object) :
 						return 'hello, %s. %s' % (who, duration_statement)
 		except :
 			traceback.print_exc()
-			return "that was very exceptional of you, %s" % who
+			return "You're raising exceptions, %s. Don't worry, I still like you." % who
 		finally :
 			if chg :
 				self.dump()
