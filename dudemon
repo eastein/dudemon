@@ -61,7 +61,9 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!sched', '!here', '!bye', '!whom')
+		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom')
+		stillhere_cmds = ['!stillhere', '!chilling']
+		cmds = cmds + tuple(stillhere_cmds)
 
 		try :
 			now = int(time.time())
@@ -73,7 +75,7 @@ class DudeCore(object) :
 					self.state.setdefault(who, {})
 					chg = True
 					return 'ok, %s' % who
-				elif cmd == '!next' :
+				elif cmd in ['!next', '!time'] :
 					try :
 						about = self.sanitize(words[1])
 					except IndexError :
@@ -90,7 +92,7 @@ class DudeCore(object) :
 						elif s > now :
 							return '%s will get here in %s' % (about, datediff.differ(s - now))
 						else :
-							return '%s should be here for another %s' % (about, datediff.differ(e - now))
+							return '%s has been here for %s, should be here for another %s' % (about, datediff.differ(now - s), datediff.differ(e - now))
 					else :
 						return "sorry, I don't know when %s will be around" % about
 				elif cmd == '!whom' :
@@ -139,9 +141,11 @@ class DudeCore(object) :
 					self.state[who]['e'] = now
 					chg = True
 					return 'bye, %s! You were here for %s' % (who, how_long)
-				elif cmd == '!here' :
+				elif cmd in (['!here'] + stillhere_cmds) :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
+
+					still = cmd in stillhere_cmds
 
 					try :
 						dur_in = datediff.dur2sec(words[1])
@@ -156,8 +160,10 @@ class DudeCore(object) :
 						else :
 							dur_in = DudeCore.WORK_DAY
 
+						if still :
+							return 'usage: !stillhere duration_in - format is hours:minutes'
 					additional = None
-					if 'u' in self.state[who] and self.state[who]['u'] != self.state[who]['s'] :
+					if not still and 'u' in self.state[who] and self.state[who]['u'] != self.state[who]['s'] :
 						u = self.state[who]['u']
 						s = self.state[who]['s']
 						e = self.state[who]['e']
@@ -181,7 +187,8 @@ class DudeCore(object) :
 								additional = '%s %s - a %0.1f%% error' % (datediff.differ(abs(d_d)), term, percent)
 
 					self.state[who]['u'] = now
-					self.state[who]['s'] = now
+					if not still :
+						self.state[who]['s'] = now
 					self.state[who]['e'] = now + dur_in
 					chg = True
 					
