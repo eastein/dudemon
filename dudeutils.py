@@ -1,5 +1,10 @@
 import datediff
 
+"""
+jim is here now
+jim and rhys will be here in 23 minutes.
+nobody is here now
+"""
 def whom(state, now, when) :
 	whom = list()
 	for who in state :
@@ -32,8 +37,36 @@ def whom(state, now, when) :
 
 	return '%s %s here %s.' % (whom, verbal, temporal)
 
-"""
-jim is here now
-jim and rhys will be here in 23 minutes.
-nobody is here now
-"""
+def overlap(state, s, e) :
+	whom = list()
+	for who in state :
+		if 'e' not in state[who] or 's' not in state[who] :
+			continue
+
+		w_s = state[who]['s']
+		w_e = state[who]['e']
+
+		if s < w_s and e > w_e :
+			whom.append(who)
+			continue
+		elif s >= w_s and s <= w_e :
+			whom.append(who)
+			continue
+		elif e >= w_s and e <= w_e :
+			whom.append(who)
+			continue
+
+	whom.sort()
+	return whom
+
+def oxford(l) :
+	l = l[:]
+	if not l :
+		raise RuntimeError
+	if len(l) > 2 :
+		l[len(l)-1] = 'and %s' % l[len(l)-1]
+		return ', '.join(l)
+	elif len(l) == 2 :
+		return '%s and %s' % (l[0], l[1])
+	else :
+		return l[0]

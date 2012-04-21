@@ -124,8 +124,18 @@ class DudeCore(object) :
 					self.state[who]['u'] = now
 					self.state[who]['s'] = when_in
 					self.state[who]['e'] = when_out
+
+					bump = dudeutils.overlap(self.state, self.state[who]['s'], self.state[who]['e'])
+					if who in bump :
+						bump.remove(who)
+
+					if bump :
+						append = '. You\'ll probably run into %s.' % dudeutils.oxford(bump)
+					else :
+						append = ''
+
 					chg = True
-					return 'see you for %s in %s, %s' % (datediff.differ(dur_in), datediff.differ(until_in), who)
+					return 'See you for %s in %s, %s%s' % (datediff.differ(dur_in), datediff.differ(until_in), who, append)
 				elif cmd == '!bye' :
 					if not who in self.state or 'e' not in self.state[who] :
 						return 'you never said you were here!'

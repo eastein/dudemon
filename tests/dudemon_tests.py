@@ -10,3 +10,21 @@ class DudemonTests(unittest.TestCase) :
 		self.assertEquals(dudeutils.whom(state, 1, 15), "jim, ken, and smitty will be here in 14 seconds.")
 		self.assertEquals(dudeutils.whom(state, 1, 1), "nobody is here now.")
 		self.assertEquals(dudeutils.whom(state, 1, 2), "nobody will be here in 1 second.")
+
+	def test_overlap(self) :
+		state = {
+		  'jim' : {'s' : 10, 'e' : 20},
+		  'ken' : {'s' : 12, 'e' : 16},
+		  'smitty' : {'s' : 15, 'e' : 20},
+		  'sumdood' : {}
+                }
+		self.assertEquals(dudeutils.overlap(state, 25, 25), list())
+		self.assertEquals(dudeutils.overlap(state, 0, 1), list())
+		self.assertEquals(dudeutils.overlap(state, 0, 10), ['jim'])
+		self.assertEquals(dudeutils.overlap(state, 0, 11), ['jim'])
+		self.assertEquals(dudeutils.overlap(state, 0, 12), ['jim', 'ken'])
+
+	def test_oxford(self) :
+		self.assertEquals(dudeutils.oxford(['a']), 'a')
+		self.assertEquals(dudeutils.oxford(['a', 'b']), 'a and b')
+		self.assertEquals(dudeutils.oxford(['a', 'b', 'c']), 'a, b, and c')
