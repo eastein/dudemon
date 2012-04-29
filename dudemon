@@ -56,6 +56,18 @@ class DudeCore(object) :
 			return lowchar
 		return nick
 
+	def complain_nothere(self, now, who) :
+		if not who in self.state or 'e' not in self.state[who] :
+			return 'you never said you were here!'
+
+		if now < self.state[who]['s'] :
+			return 'you are not even here yet!'
+
+		how_long = datediff.differ(now - self.state[who]['s'])
+		
+		if now > self.state[who]['e'] + DudeCore.MUST_HAVE_ALREADY_LEFT :
+			return 'what, do you live here? That would mean you\'ve been here for %s' % how_long
+
 	def handle(self, nick, text) :
 		words = [w for w in text.split(' ') if w]
 		who = self.sanitize(nick)
@@ -137,17 +149,11 @@ class DudeCore(object) :
 					chg = True
 					return 'See you for %s in %s, %s%s' % (datediff.differ(dur_in), datediff.differ(until_in), who, append)
 				elif cmd == '!bye' :
-					if not who in self.state or 'e' not in self.state[who] :
-						return 'you never said you were here!'
-
-					if now < self.state[who]['s'] :
-						return 'you are not even here yet!'
+					reason_failed = self.complain_nothere(now, who)
+					if reason_failed is not None :
+						return reason_failed
 
 					how_long = datediff.differ(now - self.state[who]['s'])
-					
-					if now > self.state[who]['e'] + DudeCore.MUST_HAVE_ALREADY_LEFT :
-						return 'what, do you live here? That would mean you\'ve been here for %s' % how_long
-
 					self.state[who]['e'] = now
 					chg = True
 					return 'bye, %s! You were here for %s' % (who, how_long)
@@ -196,13 +202,21 @@ class DudeCore(object) :
 							else :
 								additional = '%s %s - a %0.1f%% error' % (datediff.differ(abs(d_d)), term, percent)
 
+					if still :
+						reason_failed = self.complain_nothere(now, who)
+						if reason_failed is not None :
+							return reason_failed
+						additional_durst = 'another '
+					else :
+						additional_durst = ''
+
 					self.state[who]['u'] = now
 					if not still :
 						self.state[who]['s'] = now
 					self.state[who]['e'] = now + dur_in
 					chg = True
 					
-					duration_statement = "I guess you'll be here for %s or so." % datediff.differ(dur_in)
+					duration_statement = "I guess you'll be here for %s%s or so." % (additional_durst, datediff.differ(dur_in))
 
 					if additional :
 						return 'hello %s, you\'re %s. %s' % (who, additional, duration_statement)
