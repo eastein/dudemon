@@ -17,9 +17,13 @@ class DudeCore(object) :
 	WORK_DAY = 8 * 3600
 	MUST_HAVE_ALREADY_LEFT = 24 * 3600
 
-	def __init__(self, nick, statefile) :
+	def __init__(self, nick, statefile, ctakey=None) :
 		self.nick = nick
 		self.statefile = statefile
+		self.ctakey = ctakey
+		if self.ctakey :
+			import ordat.cta
+			self.train = ordat.cta.Train(key=self.ctakey)
 		self.load()
 
 	def read(self) :
@@ -73,7 +77,7 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom')
+		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when')
 		stillhere_cmds = ['!stillhere', '!chilling']
 		cmds = cmds + tuple(stillhere_cmds)
 
@@ -107,6 +111,60 @@ class DudeCore(object) :
 							return '%s has been here for %s, should be here for another %s' % (about, datediff.differ(now - s), datediff.differ(e - now))
 					else :
 						return "sorry, I don't know when %s will be around" % about
+				elif cmd == '!when' :
+					try :
+						n = int(words[1])
+						if n < 1 :
+							raise ValueError
+					except IndexError :
+						n = 1
+					except ValueError :
+						return 'usage: !when <n_events>'
+
+					ARRIVE = 0
+					LEAVE = 1
+					sort_pairs = [
+						(ARRIVE, 's'),
+						(LEAVE, 'e')
+					]
+					def find_events(forward=True) :
+						filt = {
+							True : lambda ts: ts >= now,
+							False : lambda ts: ts < now
+						}[forward]
+						events_tsdict = dict()
+
+						for person,st in self.state.items() :
+							# extract relevant data from all states
+							for etype,k in sort_pairs :
+								ets = st[k]
+								if not filt(ets) :
+									continue
+
+								# add granularity? it'd be nice to group people into smaller buckets if
+								# they arrive close together in time
+								events_tsdict[ets].setdefault(list())
+								events_tsdict[ets].append((person, etype))
+
+						return events_tsdict
+
+					ev = find_events()
+					fmts = {
+						ARRIVE : '%s arrives in %s',
+						LEAVE : '%s left %s ago'
+					}
+					tskeys = ev.keys()
+					tskeys.sort()
+					if not ev :
+						ev = find_events(forward=False)
+						tskeys = ev.keys()
+						tskeys.rsort()
+
+					for ts in tskeys[0:n] :
+						
+
+					for ts in tskeys[0:n] :
+						return dudeutils.oxford([fmts[])
 				elif cmd == '!whom' :
 					try :
 						when = now + datediff.dur2sec(words[1])
@@ -264,12 +322,16 @@ if __name__ == '__main__' :
 		nick = sys.argv[2]
 		chan = sys.argv[3]
 		statefile = sys.argv[4]
+		try :
+			ctakey = sys.argv[5]
+		except IndexError :
+			ctakey = None
 
-		core = DudeCore(nick, statefile)
+		core = DudeCore(nick, statefile, ctakey)
 
 		s = DudemonThread(server, nick, chan, core)
 	except IndexError :
-		print 'usage: dudemon <server> <nick> <channel> <statefile>'
+		print 'usage: dudemon <server> <nick> <channel> <statefile> [<cta train tracker api key>]'
 		sys.exit(1)
 	
 	s.run()
