@@ -78,7 +78,8 @@ class DudeCore(object) :
 
 		chg = False
 		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when')
-		stillhere_cmds = ['!stillhere', '!chilling']
+		stillhere_cmds = ['!stillhere', '!chilling', '!chillin', '!hanging', '!hangin']
+
 		cmds = cmds + tuple(stillhere_cmds)
 
 		try :
