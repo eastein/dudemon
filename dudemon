@@ -79,15 +79,17 @@ class DudeCore(object) :
 		chg = False
 		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when')
 		stillhere_cmds = ['!stillhere', '!chilling', '!chillin', '!hanging', '!hangin']
+		L_cmds = ['!l', '!el']
 
-		cmds = cmds + tuple(stillhere_cmds)
+		cmds = cmds + tuple(stillhere_cmds) + tuple(L_cmds)
 
 		try :
 			now = int(time.time())
-
-			if words and words[0] in cmds :
-				cmd = words[0]
-
+			if not words :
+				return
+			
+			cmd = words[0].lower()
+			if cmd in cmds :
 				if cmd == '!add' :
 					self.state.setdefault(who, {})
 					chg = True
@@ -218,6 +220,33 @@ class DudeCore(object) :
 					self.state[who]['e'] = now
 					chg = True
 					return 'bye, %s! You were here for %s' % (who, how_long)
+				elif cmd in L_cmds :
+					if not hasattr(self, 'train') :
+						return None
+
+					try :
+						station = words[1]
+						if len(station) < 3 :
+							return 'I need a station name.'
+					except IndexError :
+						return 'I need a station name.'
+
+					import ordat.cta, ordat.cta.apis
+					stations = ordat.cta.Station.find(station)
+					if len(stations) > 1 :
+						return 'That matches too many stations.'
+					# TODO ask a question like 'do you mean the one further north?' or similar. accept mapid= type values as station name.
+					try :
+						arrivals = stations[0].arrivals()
+						if not arrivals :
+							return "I don't see trains for %s" % stations[0]
+						else :
+							r = []
+							for arrival in arrivals :
+								r.append('%s%d%s%s' % (chr(3), arrival.line.unixcolor, str(arrival), chr(3)))
+							return r
+					except ordat.cta.apis.Failure, f :
+						return 'CTA API failure: %s' % f.args[0]
 				elif cmd in (['!here'] + stillhere_cmds) :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
@@ -309,7 +338,10 @@ class DudemonBot(mediorc.IRC) :
 
 		rmsg = self.core.handle(nick, txt)
 		if rmsg :
-			self.connection.privmsg(chan, rmsg)
+			if isinstance(rmsg, basestring) :
+				rmsg = [rmsg]
+			for msg in rmsg :
+				self.connection.privmsg(chan, msg)
 
 class DudemonThread(mediorc.IRCThread) :
 	def __init__(self, server, nick, chan, core) :
