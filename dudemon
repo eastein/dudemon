@@ -161,11 +161,10 @@ class DudeCore(object) :
 						tskeys = ev.keys()
 						tskeys.rsort()
 
-					for ts in tskeys[0:n] :
-						
+					return 'this code is not finished yet.'
 
-					for ts in tskeys[0:n] :
-						return dudeutils.oxford([fmts[])
+					#for ts in tskeys[0:n] :
+					#	return dudeutils.oxford([fmts[])
 				elif cmd == '!whom' :
 					try :
 						when = now + datediff.dur2sec(words[1])
