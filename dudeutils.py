@@ -52,6 +52,9 @@ def when(state, now, count=1) :
 		events_tsdict = dict()
 
 		for person,st in state.items() :
+			if not st :
+				continue
+
 			# extract relevant data from all states
 			for etype,k in sort_pairs :
 				ets = st[k]

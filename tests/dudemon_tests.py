@@ -46,6 +46,10 @@ class DudemonTests(unittest.TestCase) :
 		state = {'jim' : {'s' : 5, 'e' : 10}}
 		self.assertEquals(dudeutils.when(state, 11), "jim left 1 second ago.")
 
+	def test_when_unsetup_user(self) :
+		state = {'jim' : {}}
+		self.assertEquals(dudeutils.when(state, 5), "The only thing I know is that I know nothing.")
+
 	def test_overlap(self) :
 		state = {
 		  'jim' : {'s' : 10, 'e' : 20},
