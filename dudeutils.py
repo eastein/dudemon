@@ -97,8 +97,6 @@ def when(state, now, count=1) :
 		already_mentioned = set()
 		for ts in tskeys :
 			for e in ev[ts] :
-				if count <= 0 :
-					raise StopIteration
 				person, event = e
 				if person not in already_mentioned :
 					already_mentioned.add(person)
