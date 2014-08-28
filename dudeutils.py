@@ -39,7 +39,7 @@ def whom(state, now, when) :
 	return '%s %s here %s.' % (whom, verbal, temporal)
 
 
-def when(state, now, forward=True, count=1) :
+def when(state, now, count=1) :
 	ARRIVE = 0
 	LEAVE = 1
 	FUTURE = 0
@@ -48,19 +48,13 @@ def when(state, now, forward=True, count=1) :
 		(ARRIVE, 's'),
 		(LEAVE, 'e')
 	]
-	def find_events(forward=forward) :
-		filt = {
-			True : lambda ts: ts >= now,
-			False : lambda ts: ts < now
-		}[forward]
+	def find_events() :
 		events_tsdict = dict()
 
 		for person,st in state.items() :
 			# extract relevant data from all states
 			for etype,k in sort_pairs :
 				ets = st[k]
-				if not filt(ets) :
-					continue
 
 				# add granularity? it'd be nice to group people into smaller buckets if
 				# they arrive close together in time
@@ -80,26 +74,32 @@ def when(state, now, forward=True, count=1) :
 			LEAVE : '%s left %s ago'
 		}
 	}
-	tskeys = ev.keys()
-	tskeys.sort()
-	if not ev :
-		forward = not forward
-		ev = find_events(forward=forward)
-		tskeys = ev.keys()
-		tskeys.sort(reverse=True)
 
-	tense = {
-		True : FUTURE,
-		False: PAST
-	}[forward]
+	def cmp_function(a, b) :
+		def value_function(v) :
+			return abs(v - now)
+
+		return int.__cmp__(value_function(a), value_function(b))
+
+	tskeys = ev.keys()
+	tskeys.sort(cmp=cmp_function)
+
+	def tense(ts) :
+		if ts >= now :
+			return FUTURE
+		else :
+			return PAST
 
 	def emit_events_english(tskeys, ev) :
+		already_mentioned = set()
 		for ts in tskeys :
 			for e in ev[ts] :
 				if count <= 0 :
 					raise StopIteration
 				person, event = e
-				yield phrases[tense][event] % (person, datediff.differ(abs(ts - now)))
+				if person not in already_mentioned :
+					already_mentioned.add(person)
+					yield phrases[tense(ts)][event] % (person, datediff.differ(abs(ts - now)))
 
 	if not tskeys :
 		return 'The only thing I know is that I know nothing.'

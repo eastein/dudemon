@@ -17,8 +17,22 @@ class DudemonTests(unittest.TestCase) :
 			'bob' : {'s' : 7, 'e' : 12}
 		}
 
-		self.assertEquals(dudeutils.when(state, 1, forward=True, count=1), "alice will be here in 4 seconds.")
-		self.assertEquals(dudeutils.when(state, 5, forward=True, count=1), "alice will be here in a jiffy.")
+		self.assertEquals(dudeutils.when(state, 1, count=1), "alice will be here in 4 seconds.")
+		self.assertEquals(dudeutils.when(state, 5, count=1), "alice will be here in a jiffy.")
+
+	def test_when_past_and_future(self) :
+		state = {
+			'alice' : {'s' : 5, 'e' : 10},
+			'bob' : {'s' : 7, 'e' : 12}
+		}
+		self.assertEquals(dudeutils.when(state, 8, count=2), "bob got here 1 second ago and alice will leave in 2 seconds.")
+
+	def test_when_talk_about_each_person_once(self) :
+		state = {
+			'alice' : {'s' : 3, 'e' : 4},
+			'bob' : {'s' : 8, 'e' : 12}
+		}
+		self.assertEquals(dudeutils.when(state, 5, count=2), "alice left 1 second ago and bob will be here in 3 seconds.")
 
 	def test_when_ennui(self) :
 		state = {}

@@ -124,7 +124,11 @@ class DudeCore(object) :
 					except ValueError :
 						return 'usage: !when <n_events>'
 
-					return dudeutils.when(self.state, now, forward=True, count=n)
+
+					if n > 5 :
+						return 'Hey now, are you a stalker or something? Get out of here.'
+					
+					return dudeutils.when(self.state, now, count=n)
 				elif cmd == '!whom' :
 					try :
 						when = now + datediff.dur2sec(words[1])
