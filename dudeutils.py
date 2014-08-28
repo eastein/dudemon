@@ -42,6 +42,8 @@ def whom(state, now, when) :
 def when(state, now, forward=True, count=1) :
 	ARRIVE = 0
 	LEAVE = 1
+	FUTURE = 0
+	PAST = 1
 	sort_pairs = [
 		(ARRIVE, 's'),
 		(LEAVE, 'e')
@@ -68,9 +70,15 @@ def when(state, now, forward=True, count=1) :
 		return events_tsdict
 
 	ev = find_events()
-	fmts = {
-		ARRIVE : '%s will be here in %s',
-		LEAVE : '%s left %s ago'
+	phrases = {
+		FUTURE : {
+			ARRIVE : '%s will be here in %s',
+			LEAVE : '%s will leave in %s'
+		},
+		PAST : {
+			ARRIVE : '%s got here %s ago',
+			LEAVE : '%s left %s ago'
+		}
 	}
 	tskeys = ev.keys()
 	tskeys.sort()
@@ -80,13 +88,18 @@ def when(state, now, forward=True, count=1) :
 		tskeys = ev.keys()
 		tskeys.sort(reverse=True)
 
+	tense = {
+		True : FUTURE,
+		False: PAST
+	}[forward]
+
 	def emit_events_english(tskeys, ev) :
 		for ts in tskeys :
 			for e in ev[ts] :
 				if count <= 0 :
 					raise StopIteration
 				person, event = e
-				yield fmts[event] % (person, datediff.differ(abs(ts - now)))
+				yield phrases[tense][event] % (person, datediff.differ(abs(ts - now)))
 
 	if not tskeys :
 		return 'The only thing I know is that I know nothing.'
