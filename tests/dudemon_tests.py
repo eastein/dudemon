@@ -11,6 +11,19 @@ class DudemonTests(unittest.TestCase) :
 		self.assertEquals(dudeutils.whom(state, 1, 1), "nobody is here now.")
 		self.assertEquals(dudeutils.whom(state, 1, 2), "nobody will be here in 1 second.")
 
+	def test_when_upcoming(self) :
+		state = {
+			'alice' : {'s' : 5, 'e' : 10},
+			'bob' : {'s' : 7, 'e' : 12}
+		}
+
+		self.assertEquals(dudeutils.when(state, 1, forward=True, count=1), "alice will be here in 4 seconds.")
+		self.assertEquals(dudeutils.when(state, 5, forward=True, count=1), "alice will be here in a jiffy.")
+
+	def test_when_ennui(self) :
+		state = {}
+		self.assertEquals(dudeutils.when(state, 3), "The only thing I know is that I know nothing.")
+
 	def test_overlap(self) :
 		state = {
 		  'jim' : {'s' : 10, 'e' : 20},

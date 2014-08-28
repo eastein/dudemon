@@ -1,3 +1,4 @@
+import itertools
 import datediff
 
 """
@@ -37,6 +38,61 @@ def whom(state, now, when) :
 
 	return '%s %s here %s.' % (whom, verbal, temporal)
 
+
+def when(state, now, forward=True, count=1) :
+	ARRIVE = 0
+	LEAVE = 1
+	sort_pairs = [
+		(ARRIVE, 's'),
+		(LEAVE, 'e')
+	]
+	def find_events(forward=forward) :
+		filt = {
+			True : lambda ts: ts >= now,
+			False : lambda ts: ts < now
+		}[forward]
+		events_tsdict = dict()
+
+		for person,st in state.items() :
+			# extract relevant data from all states
+			for etype,k in sort_pairs :
+				ets = st[k]
+				if not filt(ets) :
+					continue
+
+				# add granularity? it'd be nice to group people into smaller buckets if
+				# they arrive close together in time
+				events_tsdict.setdefault(ets, list())
+				events_tsdict[ets].append((person, etype))
+
+		return events_tsdict
+
+	ev = find_events()
+	fmts = {
+		ARRIVE : '%s will be here in %s',
+		LEAVE : '%s left %s ago'
+	}
+	tskeys = ev.keys()
+	tskeys.sort()
+	if not ev :
+		forward = not forward
+		ev = find_events(forward=forward)
+		tskeys = ev.keys()
+		tskeys.sort(reverse=True)
+
+	def emit_events_english(tskeys, ev) :
+		for ts in tskeys :
+			for e in ev[ts] :
+				if count <= 0 :
+					raise StopIteration
+				person, event = e
+				yield fmts[event] % (person, datediff.differ(abs(ts - now)))
+
+	if not tskeys :
+		return 'The only thing I know is that I know nothing.'
+
+	return oxford(itertools.islice(emit_events_english(tskeys, ev), 0, count)) + '.'
+
 def overlap(state, s, e) :
 	whom = list()
 	for who in state :
@@ -60,7 +116,7 @@ def overlap(state, s, e) :
 	return whom
 
 def oxford(l) :
-	l = l[:]
+	l = list(l)
 	if not l :
 		raise RuntimeError
 	if len(l) > 2 :

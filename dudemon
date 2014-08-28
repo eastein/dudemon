@@ -124,49 +124,7 @@ class DudeCore(object) :
 					except ValueError :
 						return 'usage: !when <n_events>'
 
-					ARRIVE = 0
-					LEAVE = 1
-					sort_pairs = [
-						(ARRIVE, 's'),
-						(LEAVE, 'e')
-					]
-					def find_events(forward=True) :
-						filt = {
-							True : lambda ts: ts >= now,
-							False : lambda ts: ts < now
-						}[forward]
-						events_tsdict = dict()
-
-						for person,st in self.state.items() :
-							# extract relevant data from all states
-							for etype,k in sort_pairs :
-								ets = st[k]
-								if not filt(ets) :
-									continue
-
-								# add granularity? it'd be nice to group people into smaller buckets if
-								# they arrive close together in time
-								events_tsdict[ets].setdefault(list())
-								events_tsdict[ets].append((person, etype))
-
-						return events_tsdict
-
-					ev = find_events()
-					fmts = {
-						ARRIVE : '%s arrives in %s',
-						LEAVE : '%s left %s ago'
-					}
-					tskeys = ev.keys()
-					tskeys.sort()
-					if not ev :
-						ev = find_events(forward=False)
-						tskeys = ev.keys()
-						tskeys.rsort()
-
-					return 'this code is not finished yet.'
-
-					#for ts in tskeys[0:n] :
-					#	return dudeutils.oxford([fmts[])
+					return dudeutils.when(self.state, now, forward=True, count=n)
 				elif cmd == '!whom' :
 					try :
 						when = now + datediff.dur2sec(words[1])
