@@ -82,7 +82,7 @@ def when(state, now, count=1) :
 		def value_function(v) :
 			return abs(v - now)
 
-		return int.__cmp__(value_function(a), value_function(b))
+		return long.__cmp__(long(value_function(a)), long(value_function(b)))
 
 	tskeys = ev.keys()
 	tskeys.sort(cmp=cmp_function)

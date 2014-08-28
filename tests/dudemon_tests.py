@@ -43,7 +43,7 @@ class DudemonTests(unittest.TestCase) :
 		self.assertEquals(dudeutils.when(state, 8), "jim will leave in 2 seconds.")
 
 	def test_when_past_leaving(self) :
-		state = {'jim' : {'s' : 5, 'e' : 10}}
+		state = {'jim' : {'s' : 5L, 'e' : 10L}}
 		self.assertEquals(dudeutils.when(state, 11), "jim left 1 second ago.")
 
 	def test_when_unsetup_user(self) :
