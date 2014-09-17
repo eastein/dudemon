@@ -12,19 +12,40 @@ import sys
 import mediorc
 import datediff
 import dudeutils
+import re
 
 class DudeCore(object) :
 	WORK_DAY = 8 * 3600
 	MUST_HAVE_ALREADY_LEFT = 24 * 3600
 
-	def __init__(self, nick, statefile, ctakey=None) :
+	def __init__(self, nick, statefile, ctakey=None, pp_bind=None, pp_connect=None) :
 		self.nick = nick
 		self.statefile = statefile
 		self.ctakey = ctakey
 		if self.ctakey :
 			import ordat.cta
 			self.train = ordat.cta.Train(key=self.ctakey)
+		if pp_bind or pp_connect :
+			from zmqfan import zmqsub
+			import sync_logic, transmission
+
+		src = None
+		if pp_bind :
+			src = zmqsub.BindSub(pp_bind)
+		elif pp_connect :
+			src = zmqsub.ConnectSub(pp_connect)
+
+		self.nv = None
+		if src :
+			self.nv = sync_logic.NetworkView()
+			self.ct = transmission.ConsumerThread(src, self.nv)
+			self.ct.start()
+		
 		self.load()
+
+	def stop_hook(self) :
+		if hasattr(self, 'ct') :
+			self.ct.stop()
 
 	def read(self) :
 		if os.path.exists(self.statefile) :
@@ -71,6 +92,38 @@ class DudeCore(object) :
 		
 		if now > self.state[who]['e'] + DudeCore.MUST_HAVE_ALREADY_LEFT :
 			return 'what, do you live here? That would mean you\'ve been here for %s' % how_long
+
+	def handle_pm(self, nick, text) :
+		words = [w for w in text.split(' ') if w]
+		who = self.sanitize(nick)
+
+		try :
+			if not words :
+				return "What?"
+
+			if words[0] == '!addmac' :
+				
+				if who not in self.state :
+					return "You gotta add yourself."
+				if len(words) == 2 :
+					sanitized_mac = words[1].lower().replace('.', ':').replace('-', ':')
+					maccheck = re.compile('^[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$')
+					if not maccheck.match(sanitized_mac) :
+						return "That aint a mac address. Get outta here."
+					
+					self.state[who].setdefault('macs', [])
+
+					if sanitized_mac in self.state[who]['macs'] :
+						return "Already got that, duderino."
+					
+					self.state[who]['macs'].append(sanitized_mac)
+					self.dump()
+					return "Noted."
+				else :
+					return "I just need the mac address. That's it."
+		except :
+			traceback.print_exc()
+			return "You're raising exceptions, %s. Don't worry, I still like you." % who
 
 	def handle(self, nick, text) :
 		words = [w for w in text.split(' ') if w]
@@ -137,7 +190,7 @@ class DudeCore(object) :
 					except datediff.Bad :
 						return 'usage: !whom [how_long_in_future] format is hours:minutes'
 
-					return "As far as I know, %s" % dudeutils.whom(self.state, now, when)
+					return "As far as I know, %s" % dudeutils.whom(self.state, now, when, nv=self.nv)
 				elif cmd == '!sched' :
 					if who not in self.state :
 						return 'sorry, you must !add yourself first'
@@ -313,6 +366,15 @@ class DudemonBot(mediorc.IRC) :
 	def on_join(self, c, e) :
 		self.initialize_pinger()
 
+	def on_privmsg(self, c, e) :
+		nick = e.source().split("!")[0]
+		txt = e.arguments()[0]
+		
+		rmsg = self.core.handle_pm(nick, txt)
+		if rmsg :
+			print 'sending %s' % rmsg
+			self.connection.privmsg(nick, rmsg)
+
 	def on_pubmsg(self, c, e) :
 		nick = e.source().split("!")[0]
 		chan = e.target()
@@ -328,24 +390,32 @@ class DudemonBot(mediorc.IRC) :
 class DudemonThread(mediorc.IRCThread) :
 	def __init__(self, server, nick, chan, core) :
 		self.bot_create = lambda: DudemonBot(server, nick, chan, core)
+		self.stop_hook = core.stop_hook
 		mediorc.IRCThread.__init__(self)
 
+import sys, optparse
+
 if __name__ == '__main__' :
+	parser = optparse.OptionParser()
+	parser.add_option('--pp-bind', dest='bind_zmq_url', default=None, help="ZMQ url to bind to for pamela_probe.")
+	parser.add_option('--pp-connect', dest='connect_zmq_url', default=None, help="ZMQ url to connect to for pamela_probe.")
+	parser.add_option('--ctakey', dest='ctakey', default=None, help="CTA API key for use with !el")
+	
+	(opts, args) = parser.parse_args()
 	try :
-		server = sys.argv[1]
-		nick = sys.argv[2]
-		chan = sys.argv[3]
-		statefile = sys.argv[4]
-		try :
-			ctakey = sys.argv[5]
-		except IndexError :
-			ctakey = None
+		server, nick, chan, statefile = args
 
-		core = DudeCore(nick, statefile, ctakey)
-
-		s = DudemonThread(server, nick, chan, core)
 	except IndexError :
 		print 'usage: dudemon <server> <nick> <channel> <statefile> [<cta train tracker api key>]'
 		sys.exit(1)
-	
-	s.run()
+
+	if opts.connect_zmq_url and opts.bind_zmq_url :
+		print 'you cannot use both --pp-bind and --pp-connect.'
+		sys.exit(1)
+
+	core = DudeCore(nick, statefile, ctakey=opts.ctakey, pp_bind=opts.bind_zmq_url, pp_connect=opts.connect_zmq_url)
+	s = DudemonThread(server, nick, chan, core)
+	try :
+		s.run()
+	except KeyboardInterrupt :
+		s.stop()
