@@ -5,15 +5,34 @@ import datediff
 jim is here now
 jim and rhys will be here in 23 minutes.
 nobody is here now
-"""
-def whom(state, now, when) :
-	whom = list()
-	for who in state :
-		if 'e' not in state[who] or 's' not in state[who] :
-			continue
 
-		if when <= state[who]['e'] and state[who]['s'] <= when :
-			whom.append(who)
+@param now integer unix timestamp asserting that that is when now should be considered to be
+@param when integer unix timestamp indicating when the requestor wants to know about
+@param nv a sync_logic.NetworkView object from pamela_probe, if set. Can be used to check the set of nodes on the
+          network.
+"""
+def whom(state, now, when, nv=None) :
+	# determine present macs if possible to find & also relevant
+	present_macs = None
+	if (now == when) and (nv is not None) and nv.synced :
+		present_macs = set([n[0] for n in nv.net])
+
+	whomset = set()
+	for who in state :
+		period_set = ('e' in state[who] and 's'  in state[who])
+		mac_set = 'macs' in state[who]
+		
+		if period_set :
+			if when <= state[who]['e'] and state[who]['s'] <= when :
+				whomset.add(who)
+	
+		# if mac presence is relevant, and this person has a mac set... check it
+		if mac_set and present_macs :
+			ms = set(state[who]['macs'])
+			if ms.union(present_macs) :
+				whomset.add(who)
+	
+	whom = list(whomset)
 	whom.sort()
 	plural = len(whom) > 1
 

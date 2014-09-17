@@ -1,6 +1,11 @@
 import unittest
 import dudeutils
 
+class FakeObject(object) :
+	def __init__(self, **kw) :
+		for k,v in kw.items() :
+			setattr(self, k, v)
+
 class DudemonTests(unittest.TestCase) :
 	def test_whom(self) :
 		state = {'jim' : {'s' : 10, 'e' : 20}, 'ken' : {'s' : 12, 'e' : 20}, 'smitty' : {'s' : 15, 'e' : 20}, 'sumdood' : {}}
@@ -10,6 +15,16 @@ class DudemonTests(unittest.TestCase) :
 		self.assertEquals(dudeutils.whom(state, 1, 15), "jim, ken, and smitty will be here in 14 seconds.")
 		self.assertEquals(dudeutils.whom(state, 1, 1), "nobody is here now.")
 		self.assertEquals(dudeutils.whom(state, 1, 2), "nobody will be here in 1 second.")
+
+	def test_pamela_whom(self) :
+		thenet = FakeObject(**{'net' : set([('aa:aa:aa:bb:bb:bb', '127.0.0.1', 'A computer')]), 'serial' : 5000, 'synced' : True})
+
+		state = {'jim' : {'s' : 5200, 'e': 5300}, 'derek' : {'macs' : ['aa:aa:aa:bb:bb:bb']}}
+		self.assertEquals(dudeutils.whom(state, 5005, 5100, nv=thenet), "nobody will be here in 1 minute, 35 seconds.")
+		self.assertEquals(dudeutils.whom(state, 5005, 5255, nv=thenet), "jim will be here in 4 minutes, 10 seconds.")
+		self.assertEquals(dudeutils.whom(state, 5005, 5005, nv=thenet), "derek is here now.")
+		thenet.synced = False
+		self.assertEquals(dudeutils.whom(state, 5005, 5005, nv=thenet), "nobody is here now.")
 
 	def test_when_upcoming(self) :
 		state = {
