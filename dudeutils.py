@@ -29,7 +29,7 @@ def whom(state, now, when, nv=None) :
 		# if mac presence is relevant, and this person has a mac set... check it
 		if mac_set and present_macs :
 			ms = set(state[who]['macs'])
-			if ms.union(present_macs) :
+			if ms.intersection(present_macs) :
 				whomset.add(who)
 	
 	whom = list(whomset)
