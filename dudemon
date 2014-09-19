@@ -130,7 +130,7 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when')
+		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when', '!scanmac')
 		stillhere_cmds = ['!stillhere', '!chilling', '!chillin', '!hanging', '!hangin']
 		L_cmds = ['!l', '!el']
 
@@ -235,6 +235,21 @@ class DudeCore(object) :
 					self.state[who]['e'] = now
 					chg = True
 					return 'bye, %s! You were here for %s' % (who, how_long)
+				elif cmd == '!scanmac' :
+					if self.nv :
+						if len(words) < 2 :
+							return "Gimme a mac address."
+						if not self.nv.synced :
+							return 'Sorry, my view of the network is impaired.'
+						r = list()
+						for p in self.nv.net :
+							if p[0] == words[1].lower() :
+								r.append('%s %s %s' % p)
+						
+						if r :
+							return r
+						else :
+							return "Sorry, I don't see it."
 				elif cmd in L_cmds :
 					if not hasattr(self, 'train') :
 						return None
