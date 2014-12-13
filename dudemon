@@ -130,7 +130,7 @@ class DudeCore(object) :
 		who = self.sanitize(nick)
 
 		chg = False
-		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when', '!scanmac')
+		cmds = ('!add', '!next', '!time', '!sched', '!here', '!bye', '!whom', '!when', '!scanmac', '!macstats')
 		stillhere_cmds = ['!stillhere', '!chilling', '!chillin', '!hanging', '!hangin']
 		L_cmds = ['!l', '!el']
 
@@ -143,6 +143,15 @@ class DudeCore(object) :
 			
 			cmd = words[0].lower()
 			if cmd in cmds :
+				if cmd == '!macstats' :
+					n_peeps = 0
+					n_macs = 0
+					for p in self.state.values() :
+						if 'macs' in p :
+							if p['macs'] :
+								n_peeps += 1
+								n_macs += len(p['macs'])
+					return '%d people have configured %d macs for scanning.' % (n_peeps, n_macs)
 				if cmd == '!add' :
 					self.state.setdefault(who, {})
 					chg = True
