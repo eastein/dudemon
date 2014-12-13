@@ -392,17 +392,17 @@ class DudemonBot(mediorc.IRC) :
 		self.initialize_pinger()
 
 	def on_privmsg(self, c, e) :
-		nick = e.source().split("!")[0]
-		txt = e.arguments()[0]
+		nick = e.source.split("!")[0]
+		txt = e.arguments[0]
 		
 		rmsg = self.core.handle_pm(nick, txt)
 		if rmsg :
 			self.connection.privmsg(nick, rmsg)
 
 	def on_pubmsg(self, c, e) :
-		nick = e.source().split("!")[0]
-		chan = e.target()
-		txt = e.arguments()[0]
+		nick = e.source.split("!")[0]
+		chan = e.target
+		txt = e.arguments[0]
 
 		rmsg = self.core.handle(nick, txt)
 		if rmsg :
