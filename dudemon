@@ -119,6 +119,7 @@ class DudeCore(object) :
 					self.state[who]['macs'].append(sanitized_mac)
 					self.dump()
 					return "Noted."
+					chg = True
 				else :
 					return "I just need the mac address. That's it."
 		except :
